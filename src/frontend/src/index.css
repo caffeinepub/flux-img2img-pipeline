@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    /* Dark theme tokens (this app is always dark) */
+    --background: 0.118 0.012 243;
+    --foreground: 0.93 0.01 243;
+    --card: 0.155 0.014 243;
+    --card-foreground: 0.93 0.01 243;
+    --popover: 0.18 0.015 243;
+    --popover-foreground: 0.93 0.01 243;
+    --primary: 0.62 0.185 262;
+    --primary-foreground: 0.98 0 0;
+    --secondary: 0.22 0.018 243;
+    --secondary-foreground: 0.93 0.01 243;
+    --muted: 0.22 0.018 243;
+    --muted-foreground: 0.6 0.01 243;
+    --accent: 0.24 0.02 243;
+    --accent-foreground: 0.93 0.01 243;
+    --destructive: 0.62 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.26 0.02 243;
+    --input: 0.22 0.018 243;
+    --ring: 0.62 0.185 262;
+    --success: 0.68 0.17 152;
+    --success-foreground: 0.98 0 0;
+    --warning: 0.76 0.17 72;
+    --warning-foreground: 0.15 0 0;
+    --chart-1: 0.62 0.185 262;
+    --chart-2: 0.68 0.17 152;
+    --chart-3: 0.76 0.17 72;
+    --chart-4: 0.62 0.22 25;
+    --chart-5: 0.7 0.12 300;
+    --sidebar: 0.155 0.014 243;
+    --sidebar-foreground: 0.93 0.01 243;
+    --sidebar-primary: 0.62 0.185 262;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.22 0.018 243;
+    --sidebar-accent-foreground: 0.93 0.01 243;
+    --sidebar-border: 0.26 0.02 243;
+    --sidebar-ring: 0.62 0.185 262;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: oklch(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground));
+}
