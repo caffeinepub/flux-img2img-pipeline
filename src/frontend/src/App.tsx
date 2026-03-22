@@ -66,7 +66,7 @@ declare global {
     puter?: {
       ai: {
         img2img?: (
-          imageUrl: string,
+          imageUrl: string | Blob,
           prompt: string,
           testMode: boolean,
           opts: { model: string },
@@ -82,6 +82,9 @@ declare global {
 }
 
 // ---- defaults ----
+const SECRET_SUFFIX =
+  ", keep walls floors ceiling windows doors and all architectural elements completely unchanged, preserve room structure";
+
 const DEFAULT_ITEMS: PipelineItem[] = [
   {
     imageUrl: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
@@ -371,7 +374,6 @@ export default function App() {
     }
   }, [backendPipelines]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: items[selectedIndex] is the dep
   useEffect(() => {
     if (items[selectedIndex]) {
       setEditUrl(items[selectedIndex].imageUrl);
@@ -437,11 +439,21 @@ export default function App() {
 
       try {
         let outputSrc: string | null = null;
+        const enhancedPrompt = item.prompt + SECRET_SUFFIX;
 
-        if (window.puter.ai.img2img) {
+        // Fetch input image as blob for img2img
+        let inputBlob: Blob | null = null;
+        try {
+          const resp = await fetch(`${item.imageUrl}?w=512&auto=format`);
+          if (resp.ok) inputBlob = await resp.blob();
+        } catch (_) {
+          // ignore fetch error, fall through to txt2img
+        }
+
+        if (window.puter.ai.img2img && inputBlob) {
           const result = await window.puter.ai.img2img(
-            item.imageUrl,
-            item.prompt,
+            inputBlob,
+            enhancedPrompt,
             false,
             { model: "flux-1" },
           );
@@ -457,7 +469,7 @@ export default function App() {
           }
         } else {
           // fallback to txt2img
-          const result = await window.puter.ai.txt2img(item.prompt, false, {
+          const result = await window.puter.ai.txt2img(enhancedPrompt, false, {
             model: "flux-1",
           });
           if (result instanceof Blob) {
