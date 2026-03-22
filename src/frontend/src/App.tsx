@@ -65,16 +65,25 @@ declare global {
   interface Window {
     puter?: {
       ai: {
-        img2img?: (
-          imageUrl: string | Blob,
-          prompt: string,
-          testMode: boolean,
-          opts: { model: string },
-        ) => Promise<Blob | { src: string } | HTMLImageElement>;
         txt2img: (
           prompt: string,
-          testMode: boolean,
-          opts: { model: string },
+          optsOrTestMode:
+            | boolean
+            | {
+                provider?: string;
+                model?: string;
+                image_url?: string;
+                input_image?: string;
+                input_image_mime_type?: string;
+                width?: number;
+                height?: number;
+              },
+          opts?: { model?: string },
+        ) => Promise<HTMLImageElement | Blob>;
+        img2img: (
+          image: Blob | File,
+          prompt: string,
+          opts?: { testMode?: boolean; model?: string },
         ) => Promise<HTMLImageElement | Blob>;
       };
     };
@@ -271,7 +280,7 @@ function PipelineCard({
             </p>
           </div>
           <p className="text-[9px] text-muted-foreground mt-1">
-            Flux 1.0 · img2img
+            FLUX.1-depth · img2img
           </p>
         </div>
 
@@ -438,78 +447,36 @@ export default function App() {
       }, 800);
 
       try {
-        let outputSrc: string | null = null;
         const enhancedPrompt = item.prompt + SECRET_SUFFIX;
 
-        // Helper to extract src from img2img/txt2img result
-        function extractSrc(
-          result: Blob | { src: string } | HTMLImageElement,
-        ): string | null {
-          if (result instanceof Blob) return URL.createObjectURL(result);
-          if (result instanceof HTMLImageElement) return result.src;
-          if (result && typeof (result as { src?: string }).src === "string")
-            return (result as { src: string }).src;
-          return null;
+        // Step 1: fetch image as blob
+        addLog(`[${i + 1}] Fetching image...`);
+        let imageBlob: Blob;
+        try {
+          const resp = await fetch(
+            `${item.imageUrl}?w=768&auto=format&fit=crop`,
+          );
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          imageBlob = await resp.blob();
+          addLog(
+            `[${i + 1}] Image fetched (${Math.round(imageBlob.size / 1024)}KB)`,
+          );
+        } catch (fetchErr) {
+          throw new Error(
+            `Image fetch failed: ${
+              fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+            }`,
+          );
         }
 
-        if (window.puter.ai.img2img) {
-          // Tier 1: try img2img with URL string directly
-          let img2imgSuccess = false;
-          try {
-            addLog(`[Tier1] img2img URL: ${item.imageUrl}`);
-            const result = await window.puter.ai.img2img(
-              `${item.imageUrl}?w=512&auto=format`,
-              enhancedPrompt,
-              false,
-              { model: "flux-1" },
-            );
-            outputSrc = extractSrc(result);
-            img2imgSuccess = true;
-          } catch (_) {
-            addLog("[Tier1] URL failed, trying blob...");
-          }
+        // Step 2: run img2img
+        addLog(`[${i + 1}] Running img2img: "${item.prompt}"`);
+        const result = await window.puter.ai.img2img(imageBlob, enhancedPrompt);
 
-          // Tier 2: try img2img with blob (cors fetch)
-          if (!img2imgSuccess) {
-            try {
-              const resp = await fetch(`${item.imageUrl}?w=512&auto=format`, {
-                mode: "cors",
-              });
-              if (resp.ok) {
-                const blob = await resp.blob();
-                const result = await window.puter.ai.img2img!(
-                  blob,
-                  enhancedPrompt,
-                  false,
-                  { model: "flux-1" },
-                );
-                outputSrc = extractSrc(result);
-                img2imgSuccess = true;
-              }
-            } catch (_) {
-              addLog("[Tier2] Blob fetch failed, falling back to txt2img...");
-            }
-          }
-
-          // Tier 3: fallback to txt2img
-          if (!img2imgSuccess) {
-            addLog("[Tier3] Using txt2img fallback");
-            const result = await window.puter.ai.txt2img(
-              enhancedPrompt,
-              false,
-              { model: "flux-1" },
-            );
-            if (result instanceof Blob) outputSrc = URL.createObjectURL(result);
-            else if (result instanceof HTMLImageElement) outputSrc = result.src;
-          }
-        } else {
-          // img2img not available, use txt2img
-          const result = await window.puter.ai.txt2img(enhancedPrompt, false, {
-            model: "flux-1",
-          });
-          if (result instanceof Blob) outputSrc = URL.createObjectURL(result);
-          else if (result instanceof HTMLImageElement) outputSrc = result.src;
-        }
+        // Step 3: extract output src
+        let outputSrc: string | null = null;
+        if (result instanceof Blob) outputSrc = URL.createObjectURL(result);
+        else if (result instanceof HTMLImageElement) outputSrc = result.src;
 
         clearInterval(progressInterval);
         setResults((prev) => {
@@ -681,7 +648,7 @@ export default function App() {
           transition={{ delay: 0.15 }}
           className="text-sm text-muted-foreground"
         >
-          Powered by Flux 1.0 · Puter.js · Batch img2img processing
+          Powered by FLUX.1-depth · Puter.js · puter.ai.img2img
         </motion.p>
         <motion.div
           initial={{ opacity: 0 }}
@@ -721,7 +688,7 @@ export default function App() {
                 Base Model
               </Label>
               <div className="text-xs font-medium text-primary bg-primary/10 border border-primary/20 rounded px-2 py-1">
-                Flux 1.0
+                FLUX.1-depth
               </div>
             </div>
 
